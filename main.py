@@ -1,15 +1,11 @@
 import sys
 import time
-import librosa.display
 import pygame
-from multiprocessing import Process, Queue, Pipe
+from multiprocessing import Process
 import threading
 import queue
 from PyQt5.QtWidgets import QFileDialog, QWidget, QApplication
 import random
-import matplotlib
-import pyautogui
-import keyboard
 import os
 import shutil
 import sqlite3
@@ -20,56 +16,13 @@ from Boss import Boss
 from Fracture import Fracture
 from Uncommon_boss import UncommonBoss
 from loadimage import load_image
+from Textur.cv.cv1 import screenshot
 
 
 class GetAudio(QWidget):
     def __init__(self):
         super().__init__()
         self.fname = QFileDialog.getOpenFileName(self, 'Выбрать музыку', '', 'Музыка (*.wav)')[0]
-
-
-class Musik_render(Process):
-    def __init__(self, q, audio_data, bits_in_minute):
-        Process.__init__(self)
-        self.q = q
-        self.bits_in_minute = bits_in_minute
-        self.audio_data = audio_data
-
-    def run(self):
-        bits_in_minute = self.bits_in_minute
-        y, sr = librosa.load(self.audio_data)
-        y_harmonic, y_percussive = librosa.effects.hpss(y)
-        if bits_in_minute != -1:
-            tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                         trim=True)
-        else:
-            tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", trim=True)
-        self.q.put([beat_frames, True])
-
-
-class Musik_render2(Process):
-    def __init__(self, q, audio_data, bits_in_minute, conn):
-        Process.__init__(self)
-        self.q = q
-        self.con = conn
-        self.bits_in_minute = bits_in_minute
-        self.audio_data = audio_data
-        self.work = True
-
-    def run(self):
-        self.con.send([True])
-        bits_in_minute = self.bits_in_minute
-        y, sr = librosa.load(self.audio_data)
-        y_harmonic, y_percussive = librosa.effects.hpss(y)
-        if bits_in_minute != -1:
-            tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                         trim=True)
-        else:
-            tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", trim=True)
-        self.work = False
-        self.q.put([beat_frames, True])
-        self.con.send([False])
-        self.con.close()
 
 
 def get_click(pos):
@@ -230,45 +183,6 @@ def loading(screen, rotaite):
     screen.blit(rot, rot_rect)
 
 
-def musik_render(audio_data):
-    bits_in_minute = 60.0
-    y, sr = librosa.load(audio_data)
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                 trim=True)
-    return beat_frames
-
-
-def musik_render_Sacrifice(audio_data, q):
-    print("Рендер " + audio_data + " начат")
-    bits_in_minute = 60.0
-    y, sr = librosa.load(audio_data)
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time",
-                                                 trim=True)
-    print("Рендер " + audio_data + " окончен")
-    print()
-    q.put([beat_frames, True])
-
-
-def musik_render_Forever_Mine(audio_data, q):
-    bits_in_minute = 60.0
-    y, sr = librosa.load(audio_data)
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                 trim=True)
-    q.put([beat_frames, True])
-
-
-def musik_render_The_Jounrey_Home(audio_data, q):
-    bits_in_minute = 60.0
-    y, sr = librosa.load(audio_data)
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                 trim=True)
-    q.put([beat_frames, True])
-
-
 def sniper(cor):
     dog_surf = pygame.image.load(
         'Textur/popal.png')
@@ -379,12 +293,6 @@ def get_final(pos):
     return False
 
 
-def get_privat_musik(pos):
-    if 1203 > pos[0] > 1094 and 723 > pos[1] > 695:
-        return True
-    return False
-
-
 # Add by dxx573kwot
 
 
@@ -410,18 +318,6 @@ def get_name_score(name):
         return get_any_score()[name]
     except IndexError:
         return "ERROR1"
-
-
-def screenshot(file):
-    keyboard.press("alt+tab")
-    time.sleep(0.1)
-    keyboard.press("left")
-    keyboard.release("left")
-    keyboard.press("left")
-    keyboard.release("left")
-    keyboard.release("alt+tab")
-    time.sleep(3)
-    pyautogui.screenshot(file)
 
 
 def take_name(keybrd, tap, fullscreen):
@@ -482,37 +378,10 @@ def all_sprites_kill():
             sprite.kill()
 
 
-def get_add_result(pos):
-    if 1196 > pos[0] > 847 and 760 > pos[1] > 728:
-        return True
-    return False
-
-
 def get_tabl_lider(pos):
     if 277 > pos[0] > 93 and 719 > pos[1] > 695:
         return True
     return False
-
-
-def renred_musik(qe):
-    bits_in_minute = -1
-    y, sr = librosa.load('Musik/custom_music.wav')
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    if bits_in_minute != -1:
-        tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                     trim=True)
-    else:
-        tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", trim=True)
-    '''
-    bits_in_minute = -1
-    y, sr = librosa.load('Musik/custom_music.wav')
-    y_harmonic, y_percussive = librosa.effects.hpss(y)
-    if bits_in_minute != -1:
-        tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", start_bpm=bits_in_minute,
-                                                     trim=True)
-    else:
-        tempo, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, units="time", trim=True)'''
-    qe.put_nowait([beat_frames])
 
 
 def registrate_user(player_name):
@@ -661,80 +530,6 @@ if __name__ == '__main__':
     audio_data_my_level = 'Musik/custom_music.wav'
     audio_data_Sacrifice = 'Musik/Sacrifice.wav'
     rady1, rady2, rady3 = True, True, True
-    '''
-    if I:
-        q1 = Queue()
-        p = Musik_render(q1, audio_data_secret2, -1)
-        p.start()
-        a1 = q1.get()
-        render_audio_secret2 = a1[0]
-        rady1 = a1[1]
-        rady2 = a1[1]
-        rady3 = a1[1]
-    elif os.cpu_count() <= 4:
-        q1 = Queue()
-        q2 = Queue()
-        q3 = Queue()
-        p = Musik_render(q1, audio_data_The_Jounrey_Home, 60)  # 60
-        p2 = Musik_render(q2, audio_data_Forever_Mine, 90)  # 90
-        p3 = Musik_render(q3, audio_data_Sacrifice, 120)  # 120
-        p.start()
-        p2.start()
-        p3.start()
-        a1 = q1.get()
-        a2 = q2.get()
-        a3 = q3.get()
-        render_audio_Sacrifice = a1[0]
-        render_audio_The_Forever_Mine = a2[0]
-        render_audio_The_Jounrey_Home = a3[0]
-        rady1 = a1[1]
-        rady2 = a2[1]
-        rady3 = a3[1]
-        q1 = Queue()
-        q3 = Queue()
-        p = Musik_render(q1, audio_data_secret1, -1)
-        p3 = Musik_render(q3, audio_data_my_level, -1)
-        p.start()
-        p2.start()
-        p3.start()
-        a1 = q1.get()
-        a3 = q3.get()
-        render_audio_secret1 = a1[0]
-        render_audio_my_level = a3[0]
-    else:
-        q1 = Queue()
-        q2 = Queue()
-        q3 = Queue()
-        q4 = Queue()
-        q6 = Queue()
-        p = Musik_render(q1, audio_data_The_Jounrey_Home, 60)  # 60
-        p2 = Musik_render(q2, audio_data_Forever_Mine, 90)  # 90
-        p3 = Musik_render(q3, audio_data_Sacrifice, 120)  # 120
-        p4 = Musik_render(q4, audio_data_secret1, -1)
-        p6 = Musik_render(q6, audio_data_my_level, -1)
-        p.start()
-        p2.start()
-        p3.start()
-        p4.start()
-        p6.start()
-        a1 = q1.get()
-        a2 = q2.get()
-        a3 = q3.get()
-        a4 = q4.get()
-        a6 = q6.get()
-        render_audio_Sacrifice = a1[0]
-        render_audio_The_Forever_Mine = a2[0]
-        render_audio_The_Jounrey_Home = a3[0]
-        render_audio_secret1 = a4[0]
-        render_audio_my_level = a6[0]
-        rady1 = a1[1]
-        rady2 = a2[1]
-        rady3 = a3[1]
-    with open(f"render_music/{audio_data_Sacrifice.split('/')[-1].split(',')[0]}.txt", encoding="UTF-8", mode="w") as f:
-        for i in render_audio_data_Sacrifice:
-            f.wirte(str(i) + " ")
-    '''
-    # print(rady1)
     a2 = ""
     keybrd = {113: 'q', 119: 'w', 101: 'e', 114: 'r', 116: 't', 121: 'y', 117: 'u', 105: 'i', 111: 'o', 112: 'p',
               97: 'a', 115: 's', 100: 'd', 102: 'f', 103: 'g', 104: 'h', 106: 'j', 107: 'k', 108: 'l', 122: 'z',
@@ -973,17 +768,17 @@ if __name__ == '__main__':
                         text_y = 580
                         screen.blit(text, (text_x, text_y))
                         font = pygame.font.Font(None, 30)
-                        if b >= len("Почему какай то шарик уклоняется от пуль?"):
+                        if b >= len("Почему какой-то шарик уклоняется от пуль?"):
                             part1 = False
                             part2 = True
                             time.sleep(2)
                             continue
-                        a2 += "Почему какай-то шарик уклоняется от пуль?"[b]
+                        a2 += "Почему какой-то шарик уклоняется от пуль?"[b]
                         text = font.render(a2, True, (255, 255, 255))
                         text_x = 60
                         text_y = 625
                         screen.blit(text, (text_x, text_y))
-                        if "Почему какай-то шарик уклоняется от пуль?"[b] != " ":
+                        if "Почему какой-то шарик уклоняется от пуль?"[b] != " ":
                             pygame.mixer.music.load(random.choice(tap))
                         else:
                             pygame.mixer.music.load(random.choice(space))
@@ -1292,11 +1087,6 @@ if __name__ == '__main__':
             else:
                 screen.fill((0, 0, 0))
                 font = pygame.font.Font(None, 30)
-                text = font.render("свой трек", True, (255, 255, 255))
-                text_x = 1100
-                text_y = 700
-                screen.blit(text, (text_x, text_y))
-                font = pygame.font.Font(None, 30)
                 text = font.render("лидер", True, (255, 255, 255))
                 text_x = 100
                 text_y = 700
@@ -1338,32 +1128,7 @@ if __name__ == '__main__':
                         run = False
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         fgh = get_main(event.pos)
-                        if get_privat_musik(event.pos):
-                            if not ("custom_music" in all_render_music.keys()):
-                                tabl_lider2 = False
-                                app = QApplication(sys.argv)
-                                ex = GetAudio()
-                                fname = ex.fname
-                                ex.close()
-                                shutil.copy(fname, 'Musik/custom_music.wav')
-                                qe = queue.Queue()
-                                p = threading.Thread(target=renred_musik, args=[qe])
-                                p.start()
-                                while p.is_alive():
-                                    for event in pygame.event.get():
-                                        if event.type == pygame.QUIT:
-                                            run = False
-                                    loading(screen, roteit)
-                                    roteit += 1
-                                    pygame.display.flip()
-                                vfgnxnxgfjx = qe.get()[0]
-                                all_render_music["custom_music"] = vfgnxnxgfjx
-                            settings_boss = ("custom_music.png", 2, 2, 4)
-                            texture_pack = "classic_pack"
-                            music_play_now = audio_data_my_level
-                            music_render_now = all_render_music["custom_music"]
-                            # Кирилл, при нажатии свой трек всё идёт сюда
-                        elif get_tabl_lider(event.pos):
+                        if get_tabl_lider(event.pos):
                             tabl_lider2 = True
                             font = pygame.font.Font(None, 30)
                             con = sqlite3.connect('base_score.db')
@@ -1735,11 +1500,6 @@ if __name__ == '__main__':
                     text_x = 50
                     text_y = 730
                     screen.blit(text, (text_x, text_y))
-                    font = pygame.font.Font(None, 50)
-                    text = font.render("добавить результат", True, (0, 255, 0))
-                    text_x = 850
-                    text_y = 730
-                    screen.blit(text, (text_x, text_y))
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
                             run = False
@@ -1749,8 +1509,6 @@ if __name__ == '__main__':
                                 continue
                             if get_final(event.pos):
                                 final2 = True
-                            if get_add_result(event.pos):
-                                pass
                     pygame.display.flip()
                     continue
             if first:
